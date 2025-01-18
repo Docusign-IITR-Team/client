@@ -1,7 +1,7 @@
 'use client';
 
 import { Sidebar, SidebarBody, SidebarLink } from '@/components/ui/sidebar';
-import { IconHome, IconFiles, IconSettings, IconLogin, IconLogout, IconUser } from "@tabler/icons-react";
+import { IconHome, IconFiles, IconSettings, IconLogin, IconLogout, IconUser, IconBell } from "@tabler/icons-react";
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Image from 'next/image';
 
@@ -20,6 +20,11 @@ const sidebarLinks = [
     label: 'Settings',
     href: '/settings',
     icon: <IconSettings className="h-4 w-4" />,
+  },
+  {
+    label: 'Notifications',
+    href: '/notifs',
+    icon: <IconBell className="h-4 w-4" />,
   },
 ];
 

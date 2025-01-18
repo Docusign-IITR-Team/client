@@ -21,6 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from './DarkCodeToggle';
+import { Bell } from 'lucide-react';
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -54,12 +55,20 @@ export default function Navbar() {
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
-        <ModeToggle />
-        {/* Profile Avatar with Authentication */}
+        {/* Right side group with notifications, dark mode, and profile */}
         <div className='flex items-center space-x-4'>
+          <Link href="/notifs">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                3
+              </span>
+            </Button>
+          </Link>
+          <ModeToggle />
           <Dialog>
             <DialogTrigger asChild>
-              <Avatar className='cursor-pointer'>
+              <Avatar className='cursor-pointer hover:opacity-80 transition-opacity'>
                 {session?.user?.image ? (
                   <AvatarImage
                     src={session.user.image}
