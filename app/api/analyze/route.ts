@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     // Call the external analysis API
-    const response = await fetch('http://localhost:3001/analyze', {
+    const response = await fetch('http://localhost:3002/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         text: body.content,
       }),
     });
-
+    console.log(response.status,response);
     if (!response.ok) {
       throw new Error('Analysis service failed');
     }
