@@ -25,3 +25,36 @@ body {
     text-wrap: balance;
   }
 }
+
+/* Comment highlighting styles */
+.highlighted-line {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-left: 3px solid #3b82f6 !important;
+}
+
+.highlighted-glyph {
+  background-color: #3b82f6;
+  width: 4px !important;
+  margin-left: 5px;
+}
+
+/* Comment thread styles */
+.comment-thread {
+  border-left: 2px solid #e5e7eb;
+  margin-left: 1rem;
+  padding-left: 1rem;
+}
+
+.comment-thread .comment {
+  position: relative;
+}
+
+.comment-thread .comment::before {
+  content: '';
+  position: absolute;
+  left: -1rem;
+  top: 1rem;
+  width: 0.5rem;
+  height: 2px;
+  background-color: #e5e7eb;
+}

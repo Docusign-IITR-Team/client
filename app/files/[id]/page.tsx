@@ -22,6 +22,8 @@ interface Comment {
   comment: string;
   lineNumber: number;
   createdAt: string;
+  replies: Comment[];
+  parentId?: string;
 }
 
 export default function FilePage({ params }: { params: { id: string } }) {
@@ -30,7 +32,10 @@ export default function FilePage({ params }: { params: { id: string } }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [currentLine, setCurrentLine] = useState<number | null>(null);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const decorationsRef = useRef<string[]>([]);
 
   const fetchComments = async () => {
     try {
@@ -82,8 +87,8 @@ export default function FilePage({ params }: { params: { id: string } }) {
     });
   };
 
-  const addComment = async () => {
-    if (currentLine === null || !newComment) return;
+  const addComment = async (parentId?: string) => {
+    if (!newComment || (!currentLine && !parentId)) return;
 
     try {
       const response = await fetch('/api/comments', {
@@ -93,41 +98,134 @@ export default function FilePage({ params }: { params: { id: string } }) {
         },
         body: JSON.stringify({
           fileId: params.id,
-          lineNumber: currentLine,
-          comment: newComment
+          lineNumber: parentId ? undefined : currentLine,
+          comment: newComment,
+          ...(parentId ? { parentId } : {})
         }),
       });
 
+      const data = await response.json();
       if (response.ok) {
+        // Update comments state locally
+        if (parentId) {
+          setComments(prevComments => {
+            return prevComments.map(comment => {
+              if (comment._id === parentId) {
+                return {
+                  ...comment,
+                  replies: [...(comment.replies || []), data.comment]
+                };
+              }
+              return comment;
+            });
+          });
+        } else {
+          setComments(prevComments => [data.comment, ...prevComments]);
+        }
+        
         setNewComment('');
-        fetchComments();
+        setReplyingTo(null);
       }
     } catch (err) {
       console.error('Failed to add comment:', err);
     }
   };
 
-  const highlightComment = (comment: Comment) => {
+  const highlightLine = (lineNumber: number) => {
     if (!editorRef.current) return;
     
-    const model = editorRef.current.getModel();
+    const editor = editorRef.current;
+    const model = editor.getModel();
     if (!model) return;
 
-    // Get the line content
-    const lineContent = model.getLineContent(comment.lineNumber);
-    
-    // Create selection for the whole line
-    const range = {
-      startLineNumber: comment.lineNumber,
-      startColumn: 1,
-      endLineNumber: comment.lineNumber,
-      endColumn: lineContent.length + 1
-    };
+    // Clear previous decorations
+    editor.deltaDecorations(decorationsRef.current, []);
 
-    // Reveal and select the range
-    editorRef.current.revealRangeInCenter(range);
-    editorRef.current.setPosition({ lineNumber: comment.lineNumber, column: 1 });
+    // Add new decoration
+    const decorations = editor.deltaDecorations([], [
+      {
+        range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+        options: {
+          isWholeLine: true,
+          className: 'highlighted-line',
+          glyphMarginClassName: 'highlighted-glyph'
+        }
+      }
+    ]);
+
+    decorationsRef.current = decorations;
+    setHighlightedLine(lineNumber);
+
+    // Reveal the line
+    editor.revealLineInCenter(lineNumber);
   };
+
+  const renderComment = (comment: Comment, depth = 0) => (
+    <div
+      key={comment._id}
+      className={`p-3 bg-gray-50 rounded ${depth > 0 ? 'ml-4 border-l-2 border-blue-200' : ''}`}
+    >
+      <div 
+        className="cursor-pointer hover:bg-gray-100"
+        onClick={() => highlightLine(comment.lineNumber)}
+      >
+        <div className="text-sm font-medium text-gray-600 mb-1">
+          Line {comment.lineNumber}
+        </div>
+        <p className="text-gray-800">{comment.comment}</p>
+        <div className="flex items-center justify-between mt-1">
+          <div className="text-xs text-gray-500">
+            {new Date(comment.createdAt).toLocaleString()}
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setReplyingTo(comment._id);
+            }}
+            className="text-xs text-blue-500 hover:text-blue-700"
+          >
+            Reply
+          </button>
+        </div>
+      </div>
+
+      {replyingTo === comment._id && (
+        <div className="mt-2 pl-4">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Write your reply..."
+            className="w-full p-2 border rounded mb-2 text-sm"
+            rows={2}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => addComment(comment._id)}
+              disabled={!newComment}
+              className="bg-blue-500 text-white px-3 py-1 rounded text-sm disabled:opacity-50"
+            >
+              Reply
+            </button>
+            <button
+              onClick={() => {
+                setReplyingTo(null);
+                setNewComment('');
+              }}
+              className="text-gray-500 hover:text-gray-700 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {comment.replies?.length > 0 && (
+        <div className="mt-2">
+          {comment.replies.map(reply => renderComment(reply, depth + 1))}
+        </div>
+      )}
+    </div>
+  );
 
   if (error) {
     return (
@@ -167,6 +265,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
               fontSize: 14,
               wordWrap: 'on',
               lineNumbers: 'on',
+              glyphMargin: true,
               renderLineHighlight: 'all'
             }}
             onMount={handleEditorDidMount}
@@ -174,26 +273,26 @@ export default function FilePage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      <div className="w-80 flex flex-col">
+      <div className="w-96 flex flex-col">
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="text-lg font-semibold mb-2">Add Comment</h2>
           {currentLine ? (
             <>
-              <div className="mb-2 p-2 bg-gray-100 rounded text-sm">
-                <strong>Line {currentLine}</strong>
+              <div className="mb-2 p-2 bg-blue-50 rounded text-sm">
+                <strong className="text-blue-700">Line {currentLine}</strong>
               </div>
               <textarea
                 id="commentInput"
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Write your comment..."
-                className="w-full p-2 border rounded mb-2"
+                className="w-full p-2 border rounded mb-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
               />
               <button
-                onClick={addComment}
+                onClick={() => addComment()}
                 disabled={!newComment}
-                className="w-full bg-blue-500 text-white py-2 px-4 rounded disabled:opacity-50"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded disabled:opacity-50 transition-colors"
               >
                 Add Comment
               </button>
@@ -209,21 +308,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
             <p className="text-gray-500 text-sm">No comments yet</p>
           ) : (
             <div className="space-y-4">
-              {comments.map((comment) => (
-                <div
-                  key={comment._id}
-                  className="p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100"
-                  onClick={() => highlightComment(comment)}
-                >
-                  <div className="text-sm font-medium text-gray-600 mb-1">
-                    Line {comment.lineNumber}
-                  </div>
-                  <p className="text-gray-800">{comment.comment}</p>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {new Date(comment.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              ))}
+              {comments.map(comment => renderComment(comment))}
             </div>
           )}
         </div>
