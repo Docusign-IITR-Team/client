@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { NextAuthProvider } from '@/components/providers/NextAuthProvider'
-import { CustomSidebar } from './components/CustomSidebar'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { Toaster } from 'sonner'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -20,15 +20,22 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <NextAuthProvider>
-          <div className="flex min-h-screen">
-            <main className="flex-1 overflow-x-hidden">
-              {children}
-            </main>
-          </div>
-          <Toaster richColors />
-        </NextAuthProvider>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NextAuthProvider>
+            <div className="flex min-h-screen">
+              <main className="flex-1 overflow-x-hidden">
+                {children}
+              </main>
+            </div>
+            <Toaster richColors />
+          </NextAuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

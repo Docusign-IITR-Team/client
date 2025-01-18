@@ -14,7 +14,7 @@ export async function GET(
     }
 
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
 
     // Find file where user is either owner or collaborator
     const file = await db.collection('files').findOne({
@@ -53,7 +53,7 @@ export async function PUT(
     }
 
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
 
     // First check if the user is the owner
     const file = await db.collection('files').findOne({

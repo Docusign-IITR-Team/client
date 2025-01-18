@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const client = await clientPromise;
-    const db = client.db();
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
     const { userId, message, fileLink } = await request.json();
 
     const notification = {

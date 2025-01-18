@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     }
 
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
 
     console.log('Fetching files for user:', session.user.email);
 
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
     const content = await file.text();
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB);
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
 
     console.log('Creating file:', file.name);
     console.log('Owner email:', session.user.email);

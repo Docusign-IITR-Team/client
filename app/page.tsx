@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import Navbar from "./components/Navbar";
 import { FileUpload } from "@/components/ui/file-upload";
 import { IconFileText } from '@tabler/icons-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FileItem {
   _id: string;
@@ -84,8 +85,22 @@ export default function Home() {
   const sharedFiles = files.filter(file => file.owner !== session?.user?.email);
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="container mx-auto p-6">
+          <div className="mb-8">
+            <Skeleton className="h-12 w-48 mb-4" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-8 w-32 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-40 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -141,33 +156,43 @@ export default function Home() {
           {/* Your Files Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">Your Files</h2>
-            {ownedFiles.length === 0 ? (
-              <div className="text-center py-8">
-                <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-500">No files uploaded yet</p>
+            {isLoading ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-40 rounded-lg" />
+                  ))}
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                {ownedFiles.map((file) => (
-                  <Link
-                    key={file._id}
-                    href={`/files/${file._id}`}
-                    className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">{file.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {(file.size / 1024).toFixed(2)} KB
-                        </p>
+              ownedFiles.length === 0 ? (
+                <div className="text-center py-8">
+                  <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-500">No files uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {ownedFiles.map((file) => (
+                    <Link
+                      key={file._id}
+                      href={`/files/${file._id}`}
+                      className="block p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="font-medium">{file.name}</h3>
+                          <p className="text-sm text-gray-500">
+                            {(file.size / 1024).toFixed(2)} KB
+                          </p>
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {new Date(file.updatedAt).toLocaleDateString()}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {new Date(file.updatedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+                    </Link>
+                  ))}
+                </div>
+              )
             )}
           </div>
 
