@@ -1,14 +1,37 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/utils/db';    
+import clientPromise from '@/lib/utils/db';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from '@/lib/utils/auth';
 
 export async function GET() {
     try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const client = await clientPromise;
         const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
-        const collection = db.collection('files');
         
-        const results = await collection.find({}).toArray();
-        return NextResponse.json(results);
+        const files = await db
+            .collection('files')
+            .find({
+                $or: [
+                    { owner: session.user.email },
+                    { collaborators: session.user.email }
+                ]
+            })
+            .project({
+                name: 1,
+                size: 1,
+                updatedAt: 1,
+                owner: 1,
+                collaborators: 1
+            })
+            .sort({ updatedAt: -1 })
+            .toArray();
+
+        return NextResponse.json(files);
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
@@ -17,8 +40,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const session = await getServerSession(authOptions);
+        
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        const type = formData.get('type') as string;
         
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -29,7 +59,6 @@ export async function POST(request: Request) {
         }
 
         const fileContent = await file.text();
-        console.log('File content:', fileContent); // Debug log
         
         const client = await clientPromise;
         const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
@@ -39,23 +68,24 @@ export async function POST(request: Request) {
             name: file.name,
             content: fileContent,
             size: file.size,
-            type: file.type,
-            uploadedAt: new Date()
+            type: type || 'document', // 'agreement' for agreements, 'document' for general uploads
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            owner: session.user.email,
+            collaborators: []
         });
 
-        // Debug log
-        console.log('Saved document:', {
-            id: result.insertedId,
-            name: file.name,
-            contentLength: fileContent.length
+        return NextResponse.json({
+            success: true,
+            fileId: result.insertedId,
+            message: 'File uploaded successfully'
         });
 
-        return NextResponse.json({ 
-            message: 'File uploaded successfully',
-            fileId: result.insertedId 
-        });
-    } catch (e) {
-        console.error('Upload error:', e);
-        return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+    } catch (error) {
+        console.error('Upload error:', error);
+        return NextResponse.json(
+            { error: 'Failed to upload file' },
+            { status: 500 }
+        );
     }
 }

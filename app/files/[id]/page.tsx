@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { editor } from 'monaco-editor';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import Navbar from '@/app/components/Navbar';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -46,6 +47,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
   const { data: session, status } = useSession();
@@ -108,6 +110,42 @@ export default function FilePage({ params }: { params: { id: string } }) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (editorRef.current && searchQuery) {
+      const editor = editorRef.current;
+      const decorations = editor.getModel()?.findMatches(
+        searchQuery,
+        false, // searchOnlyEditableRange
+        true,  // isRegex
+        true,  // matchCase
+        null,  // wordSeparators
+        true   // captureMatches
+      ) || [];
+
+      const newDecorations = decorations.map(d => ({
+        range: d.range,
+        options: {
+          inlineClassName: 'search-highlight',
+          overviewRuler: {
+            color: '#ffd700',
+            position: monaco.editor.OverviewRulerLane.Center
+          }
+        }
+      }));
+
+      decorationsRef.current = editor.deltaDecorations(decorationsRef.current, newDecorations);
+
+      // If there are matches, scroll to the first one
+      if (decorations.length > 0) {
+        editor.revealLineInCenter(decorations[0].range.startLineNumber);
+      }
+    } else if (editorRef.current && !searchQuery) {
+      // Clear decorations when search is empty
+      const editor = editorRef.current;
+      decorationsRef.current = editor.deltaDecorations(decorationsRef.current, []);
+    }
+  }, [searchQuery]);
 
   const fetchComments = async () => {
     try {
@@ -191,6 +229,39 @@ export default function FilePage({ params }: { params: { id: string } }) {
       }
     } catch (err) {
       console.error('Failed to add comment:', err);
+    }
+  };
+
+  const scrollToLine = (lineNumber: number) => {
+    if (editorRef.current) {
+      // Clear previous decorations
+      if (decorationsRef.current.length) {
+        editorRef.current.deltaDecorations(decorationsRef.current, []);
+      }
+
+      // Add new decoration
+      const newDecorations = editorRef.current.deltaDecorations([], [
+        {
+          range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+          options: {
+            isWholeLine: true,
+            className: 'highlight-line',
+            glyphMarginClassName: 'highlight-line-glyph'
+          }
+        }
+      ]);
+      decorationsRef.current = newDecorations;
+
+      // Scroll to the line
+      editorRef.current.revealLineInCenter(lineNumber);
+
+      // Remove highlight after 2 seconds
+      setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.deltaDecorations(decorationsRef.current, []);
+          decorationsRef.current = [];
+        }
+      }, 2000);
     }
   };
 
@@ -512,7 +583,15 @@ export default function FilePage({ params }: { params: { id: string } }) {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-600">{comment.email}</span>
-            <span className="text-xs text-gray-500">Line {comment.lineNumber}</span>
+            <button 
+              onClick={() => scrollToLine(comment.lineNumber)}
+              className="text-xs font-bold text-blue-700 bg-gray-100 border border-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 transition-colors"
+            >
+              Line {comment.lineNumber}
+            </button>
+            <span className="text-xs text-gray-500">
+              {new Date(comment.createdAt).toLocaleString()}
+            </span>
           </div>
           <p className="text-sm text-gray-600 mt-1">{comment.comment}</p>
         </div>
@@ -600,93 +679,75 @@ export default function FilePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen flex p-4 gap-4">
+    <>
+      <style jsx global>{`
+        .highlight-line {
+          background-color: #fff7d5;
+          transition: background-color 0.3s ease;
+        }
+        .highlight-line-glyph {
+          background-color: #ffd700;
+        }
+        .search-highlight {
+          background-color: #ffeb3b80;
+          border-radius: 2px;
+        }
+      `}</style>
+      <Navbar />
+    <div className="min-h-screen flex p-4 gap-4 mt-16">
       <div className="flex-grow flex flex-col">
         <div className="mb-4">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-2xl font-bold">{file?.name}</h1>
-              <p className="text-sm text-gray-500">Press Ctrl+K (Cmd+K on Mac) to quickly add a comment</p>
+              <p className="text-sm text-gray-500">Created by : {file?.owner}</p>
             </div>
             <div className="flex items-center gap-4">
+              <div className="flex-grow relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search in file..."
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
               <button
                 onClick={analyzeFile}
                 disabled={isAnalyzing}
-                className={`px-4 py-2 rounded text-white transition-colors flex items-center gap-2 ${
-                  isAnalyzing 
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-purple-600 hover:bg-purple-700'
-                }`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {isAnalyzing ? (
                   <>
-                    <svg
-                      className="animate-spin h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                     Analyzing...
                   </>
                 ) : (
-                  <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                      />
-                    </svg>
-                    Analyze
-                  </>
+                  'Analyze'
                 )}
               </button>
-              {!isOwner && (
-                <button
-                  onClick={refreshContent}
-                  disabled={isRefreshing}
-                  className={`px-4 py-2 rounded text-white transition-colors flex items-center gap-2 ${
-                    isRefreshing 
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                >
-                  <svg
-                    className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                </button>
-              )}
+              <button
+                onClick={refreshContent}
+                disabled={isRefreshing}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isRefreshing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-700 border-t-transparent"></div>
+                    Refreshing...
+                  </>
+                ) : (
+                  'Refresh'
+                )}
+              </button>
               {isOwner && hasChanges && (
                 <button
                   onClick={handleSaveChanges}
@@ -898,5 +959,6 @@ export default function FilePage({ params }: { params: { id: string } }) {
         </div>
       )}
     </div>
+    </>
   );
 }

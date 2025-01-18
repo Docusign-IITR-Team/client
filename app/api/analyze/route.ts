@@ -28,7 +28,7 @@ export async function POST(request: Request) {
         text: body.content,
       }),
     });
-
+    console.log(response.status,response);
     if (!response.ok) {
       throw new Error('Analysis service failed');
     }

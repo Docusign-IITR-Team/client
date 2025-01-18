@@ -2,14 +2,6 @@
 
 import { useSession, signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { useState } from 'react';
-
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from '@/components/ui/navigation-menu';
 import {
   Dialog,
   DialogContent,
@@ -25,113 +17,91 @@ import { Bell } from 'lucide-react';
 
 export default function Navbar() {
   const { data: session } = useSession();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen);
-  };
 
   return (
-    <header className={`bg-gray-100 shadow-md p-4`}>
-      <nav className='container mx-auto flex justify-between items-center'>
-        {/* Navigation Menu */}
-        <NavigationMenu>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                className='px-4 py-2 text-sm font-medium hover:bg-gray-200 rounded-md'
-                href='/'
-              >
-                Home
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink
-                className='px-4 py-2 text-sm font-medium hover:bg-gray-200 rounded-md'
-                href='/about'
-              >
-                About
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
-        {/* Right side group with notifications, dark mode, and profile */}
-        <div className='flex items-center space-x-4'>
-          <Link href="/notifs">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                3
-              </span>
-            </Button>
-          </Link>
-          <ModeToggle />
-          <Dialog>
-            <DialogTrigger asChild>
-              <Avatar className='cursor-pointer hover:opacity-80 transition-opacity'>
-                {session?.user?.image ? (
-                  <AvatarImage
-                    src={session.user.image}
-                    alt={session.user.name || 'Profile'}
-                  />
-                ) : (
-                  <AvatarFallback>
-                    {session?.user?.name?.slice(0, 2).toUpperCase() || 'GU'}
-                  </AvatarFallback>
-                )}
-              </Avatar>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{session ? 'Profile' : 'Sign In'}</DialogTitle>
-                <DialogDescription>
-                  {session ? (
-                    <div className='space-y-4'>
-                      <div className='flex items-center space-x-4'>
-                        <Avatar className='w-16 h-16'>
-                          {session.user?.image ? (
+    <header className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-sm">
+      <nav className="container mx-auto flex justify-between items-center p-4">
+        <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-600">
+          Piwot
+        </Link>
+
+        <div className="flex items-center space-x-4">
+          {session ? (
+            <>
+              <Link href="/notifs">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                    3
+                  </span>
+                </Button>
+              </Link>
+              <ModeToggle />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Avatar className="cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage
+                      src={session.user?.image || ''}
+                      alt={session.user?.name || 'User'}
+                      referrerPolicy="no-referrer"
+                    />
+                    <AvatarFallback>
+                      {session.user?.name?.slice(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Profile</DialogTitle>
+                    <DialogDescription>
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="w-16 h-16">
                             <AvatarImage
-                              src={session.user.image}
-                              alt={session.user.name || 'Profile'}
+                              src={session.user?.image || ''}
+                              alt={session.user?.name || 'User'}
+                              referrerPolicy="no-referrer"
                             />
-                          ) : (
                             <AvatarFallback>
-                              {session.user?.name?.slice(0, 2).toUpperCase() ||
-                                'GU'}
+                              {session.user?.name?.slice(0, 2).toUpperCase() || 'U'}
                             </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div>
-                          <h3 className='font-medium'>{session.user?.name}</h3>
-                          <p className='text-sm text-gray-500'>
-                            {session.user?.email}
-                          </p>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-medium">{session.user?.name}</h3>
+                            <p className="text-sm text-gray-500">
+                              {session.user?.email}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex justify-between">
+                          <Link href="/dashboard">
+                            <Button variant="outline">Dashboard</Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => signOut()}
+                          >
+                            Sign Out
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant='outline'
-                        className='w-full'
-                        onClick={() => signOut()}
-                      >
-                        Sign Out
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className='space-y-4'>
-                      <p>Sign in with your account to continue.</p>
-                      <Button
-                        variant='outline'
-                        className='w-full'
-                        onClick={() => signIn('google')}
-                      >
-                        Sign in with Google
-                      </Button>
-                    </div>
-                  )}
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+            </>
+          ) : (
+            <>
+              <ModeToggle />
+              <Button 
+                onClick={() => signIn('google')}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              >
+                Sign In
+              </Button>
+            </>
+          )}
         </div>
       </nav>
     </header>
