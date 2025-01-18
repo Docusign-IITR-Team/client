@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSession, signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import Navbar from "./components/Navbar";
+import { FileUpload } from "@/components/ui/file-upload";
+import { IconFileText } from '@tabler/icons-react';
 
 interface FileItem {
   _id: string;
@@ -15,16 +17,17 @@ interface FileItem {
 
 export default function Home() {
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { data: session, status } = useSession();
 
+  // Fetch files on component mount
   useEffect(() => {
     if (status === 'authenticated') {
       fetchFiles();
     }
   }, [status]);
-
   const fetchFiles = async () => {
     try {
       const response = await fetch('/api/files');
@@ -42,18 +45,12 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching files:', error);
       setError('Failed to fetch files. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.name.endsWith('.txt')) {
-      setError('Only .txt files are allowed');
-      return;
-    }
-
+  const handleFileUpload = async (file: File) => {
     setUploading(true);
     setError(null);
 
@@ -83,10 +80,8 @@ export default function Home() {
       setUploading(false);
     }
   };
-
   const ownedFiles = files.filter(file => file.owner === session?.user?.email);
   const sharedFiles = files.filter(file => file.owner !== session?.user?.email);
-
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -94,7 +89,6 @@ export default function Home() {
       </div>
     );
   }
-
   if (status === 'unauthenticated') {
     return (
       <>
@@ -130,22 +124,18 @@ export default function Home() {
 
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold mb-4">Upload Text File</h2>
-            <div className="flex items-center space-x-4">
-              <label className="flex-1">
-                <input
-                  type="file"
-                  accept=".txt"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  disabled={uploading}
-                />
-                <div className="cursor-pointer bg-blue-50 border-2 border-dashed border-blue-300 rounded-lg p-4 text-center hover:bg-blue-100 transition-colors">
-                  <span className="text-blue-600">
-                    {uploading ? 'Uploading...' : 'Click to upload a .txt file'}
-                  </span>
-                </div>
-              </label>
-            </div>
+            <FileUpload 
+              onChange={(files) => {
+                if (files.length > 0) {
+                  const file = files[0];
+                  if (!file.name.endsWith('.txt')) {
+                    setError('Only .txt files are allowed');
+                    return;
+                  }
+                  handleFileUpload(file);
+                }
+              }}
+            />
           </div>
 
           {/* Your Files Section */}
@@ -153,6 +143,7 @@ export default function Home() {
             <h2 className="text-xl font-semibold mb-4">Your Files</h2>
             {ownedFiles.length === 0 ? (
               <div className="text-center py-8">
+                <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-gray-500">No files uploaded yet</p>
               </div>
             ) : (

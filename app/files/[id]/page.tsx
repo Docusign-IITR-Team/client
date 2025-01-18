@@ -332,6 +332,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-600">{comment.email}</span>
+            <span className="text-xs font-bold text-blue-700 bg-gray-100 border border-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 transition-colors">Line {comment.lineNumber}</span>
             <span className="text-xs text-gray-500">
               {new Date(comment.createdAt).toLocaleString()}
             </span>
