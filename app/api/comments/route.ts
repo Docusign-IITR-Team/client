@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import clientPromise from '@/lib/utils/db';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const fileId = searchParams.get('fileId');
 
@@ -48,6 +54,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { fileId, lineNumber, comment, parentId } = body;
 
@@ -62,7 +73,9 @@ export async function POST(request: Request) {
         let commentDoc: any = {
             fileId: new ObjectId(fileId),
             comment,
-            createdAt: new Date()
+            email: session.user.email,
+            createdAt: new Date().toISOString(),
+            ...(parentId && { parentId: new ObjectId(parentId) }),
         };
 
         if (parentId) {
@@ -72,7 +85,6 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'Parent comment not found' }, { status: 404 });
             }
             commentDoc.lineNumber = parentComment.lineNumber;
-            commentDoc.parentId = new ObjectId(parentId);
         } else {
             if (!lineNumber) {
                 return NextResponse.json({ error: 'Line number is required for new comments' }, { status: 400 });

@@ -1,7 +1,9 @@
 'use client';
 
-import React from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import Link from 'next/link';
+import { useState } from 'react';
+
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -20,12 +22,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from './DarkCodeToggle';
 
-const Navbar = () => {
-  const { data: session, status } = useSession();
-  const isDarkMode = false; // Replace this with your dark mode state logic
+export default function Navbar() {
+  const { data: session } = useSession();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
 
   return (
-    <header className={`bg-gray-100 shadow-md p-4 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}>
+    <header className={`bg-gray-100 shadow-md p-4`}>
       <nav className='container mx-auto flex justify-between items-center'>
         {/* Navigation Menu */}
         <NavigationMenu>
@@ -121,6 +127,4 @@ const Navbar = () => {
       </nav>
     </header>
   );
-};
-
-export default Navbar;
+}
