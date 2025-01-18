@@ -5,9 +5,6 @@ import dynamic from 'next/dynamic';
 import { editor } from 'monaco-editor';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { sendEmailNotification } from '@/lib/utils/emailService';
-import { saveNotification } from '@/lib/utils/notification';
-import Navbar from '@/app/components/Navbar';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -191,15 +188,6 @@ export default function FilePage({ params }: { params: { id: string } }) {
         
         setNewComment('');
         setReplyingTo(null);
-
-        // Notify collaborators
-        const collaborators = file?.collaborators || [];
-        await sendEmailNotification(collaborators, 'New Comment Added', `A new comment has been added: ${newComment}`);
-
-        // Save notification in the database
-        collaborators.forEach(async (email) => {
-          await saveNotification(email, `A new comment has been added: ${newComment}`, `/files/${params.id}`);
-        });
       }
     } catch (err) {
       console.error('Failed to add comment:', err);
@@ -329,15 +317,6 @@ export default function FilePage({ params }: { params: { id: string } }) {
         setFile(data.file);
         setCurrentContent(data.file.content);
         setHasChanges(false);
-
-        // Notify collaborators
-        const collaborators = file?.collaborators || [];
-        await sendEmailNotification(collaborators, 'Document Saved', 'The document has been saved.');
-
-        // Save notification in the database
-        collaborators.forEach(async (email) => {
-          await saveNotification(email, 'The document has been saved.', `/files/${params.id}`);
-        });
       }
     } catch (err) {
       console.error('Error updating file:', err);
@@ -395,6 +374,135 @@ export default function FilePage({ params }: { params: { id: string } }) {
     }
   };
 
+  const getIntensityColor = (intensity: number) => {
+    // Create a gradient from red (1) to green (5) with more vibrant colors
+    const colors = {
+      1: 'bg-red-500/10 text-red-700 border-red-500/20 hover:bg-red-500/20',
+      2: 'bg-orange-500/10 text-orange-700 border-orange-500/20 hover:bg-orange-500/20',
+      3: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20 hover:bg-yellow-500/20',
+      4: 'bg-lime-600/10 text-lime-700 border-lime-500/20 hover:bg-lime-500/20',
+      5: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20'
+    };
+    return colors[intensity as keyof typeof colors] || colors[3];
+  };
+
+  const renderAnalysisResult = (result: any) => {
+    if (!result) return null;
+
+    return (
+      <div className="space-y-8">
+        {/* Header Section */}
+        <div className="border-b pb-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-1">
+              <div className="text-sm text-gray-500">Drafted By</div>
+              <div className="font-medium">{result.draftedBy}</div>
+            </div>
+            <div className="w-px h-8 bg-gray-200"></div>
+            <div className="flex-1">
+              <div className="text-sm text-gray-500">Drafted For</div>
+              <div className="font-medium">{result.draftedFor}</div>
+            </div>
+          </div>
+          <p className="text-gray-600 text-sm leading-relaxed">{result.description}</p>
+        </div>
+
+        {/* Non-Negotiable Clauses */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider mb-4">
+            Non-Negotiable Clauses
+          </h3>
+          <div className="space-y-2">
+            {result.nonNegotiableClauses.map((clause: string, index: number) => (
+              <div 
+                key={index} 
+                className="flex items-start gap-3 p-3 bg-gray-500/5 hover:bg-gray-500/10 rounded-lg transition-colors"
+              >
+                <div className="flex-shrink-0 w-6 h-6 bg-gray-900/90 text-white rounded-full flex items-center justify-center text-sm">
+                  {index + 1}
+                </div>
+                <p className="text-gray-700 text-sm leading-relaxed">{clause}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Deadlines */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider mb-4">
+            Key Deadlines
+          </h3>
+          <div className="space-y-3">
+            {result.deadlines.map((deadline: any, index: number) => (
+              <div 
+                key={index}
+                className="flex items-center gap-4 p-3 bg-blue-500/10 hover:bg-blue-500/15 rounded-lg transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  <div className="text-blue-700 font-medium">
+                    {new Date(deadline.date).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div className="w-px h-8 bg-blue-500/20"></div>
+                <div className="flex-1">
+                  <div className="text-blue-700 text-sm">{deadline.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Terms and Conditions */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900 uppercase tracking-wider mb-4">
+            Terms and Conditions Analysis
+          </h3>
+          <div className="space-y-3">
+            {result.termsAndConditions.map(([term, intensity]: [string, number], index: number) => (
+              <div 
+                key={index}
+                className={`p-4 rounded-lg border transition-all duration-200 ${getIntensityColor(intensity)}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <p className="text-sm leading-relaxed">{term}</p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${
+                      intensity === 1 ? 'bg-red-500 shadow-red-500/30' :
+                      intensity === 2 ? 'bg-orange-500 shadow-orange-500/30' :
+                      intensity === 3 ? 'bg-yellow-500 shadow-yellow-500/30' :
+                      intensity === 4 ? 'bg-lime-500 shadow-lime-500/30' :
+                      'bg-emerald-500 shadow-emerald-500/30'
+                    }`}></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-center gap-6 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/30"></div>
+              <span className="text-red-700">High Risk</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-sm shadow-yellow-500/30"></div>
+              <span className="text-yellow-700">Neutral</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30"></div>
+              <span className="text-emerald-700">Favorable</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderComment = (comment: Comment, depth = 0) => (
     <div
       key={comment._id}
@@ -404,10 +512,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
         <div>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-blue-600">{comment.email}</span>
-            <span className="text-xs font-bold text-blue-700 bg-gray-100 border border-blue-300 px-2 py-0.5 rounded hover:bg-blue-200 transition-colors">Line {comment.lineNumber}</span>
-            <span className="text-xs text-gray-500">
-              {new Date(comment.createdAt).toLocaleString()}
-            </span>
+            <span className="text-xs text-gray-500">Line {comment.lineNumber}</span>
           </div>
           <p className="text-sm text-gray-600 mt-1">{comment.comment}</p>
         </div>
@@ -495,8 +600,6 @@ export default function FilePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <>
-      <Navbar />
     <div className="min-h-screen flex p-4 gap-4">
       <div className="flex-grow flex flex-col">
         <div className="mb-4">
@@ -775,37 +878,25 @@ export default function FilePage({ params }: { params: { id: string } }) {
         </div>
       </div>
       {analysisResult && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Analysis Result</h2>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 backdrop-blur-sm overflow-hidden">
+          <div className="bg-white rounded-xl w-full max-w-3xl flex flex-col max-h-[85vh]">
+            <div className="flex-shrink-0 sticky top-0 bg-white px-6 py-4 border-b z-10 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900">Document Analysis</h2>
               <button
                 onClick={() => setAnalysisResult(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
             </div>
-            <pre className="bg-gray-50 p-4 rounded whitespace-pre-wrap">
-              {JSON.stringify(analysisResult, null, 2)}
-            </pre>
+            <div className="flex-1 overflow-y-auto p-6 min-h-0">
+              {renderAnalysisResult(analysisResult)}
+            </div>
           </div>
         </div>
       )}
     </div>
-    </>
-
   );
 }
