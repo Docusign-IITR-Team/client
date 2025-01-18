@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { editor } from 'monaco-editor';
+import Navbar from '@/app/components/Navbar';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -246,6 +247,8 @@ export default function FilePage({ params }: { params: { id: string } }) {
   }
 
   return (
+    <>
+    <Navbar />
     <div className="min-h-screen flex p-4 gap-4">
       <div className="flex-grow flex flex-col">
         <div className="mb-4">
@@ -314,5 +317,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </div>
+  </>
   );
+
 }

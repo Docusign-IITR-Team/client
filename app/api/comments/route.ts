@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import clientPromise from '@/lib/mongodb';
+import clientPromise from '@/lib/utils/db';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: Request) {
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
         // Group replies with their parent comments
         const commentMap = new Map();
-        const topLevelComments = [];
+        const topLevelComments: any = [];
 
         comments.forEach(comment => {
             comment.replies = [];
