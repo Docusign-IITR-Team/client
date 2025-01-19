@@ -83,6 +83,7 @@ export async function POST(request: Request) {
       type: file.type,
       owner: session.user.email,
       collaborators: [], // Initialize empty collaborators array
+      signatures: { [session.user.email]: false }, // Initialize signatures with owner
       createdAt: new Date(),
       updatedAt: new Date(),
     });

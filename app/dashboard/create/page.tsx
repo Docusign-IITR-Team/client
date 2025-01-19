@@ -110,99 +110,103 @@ const questions = {
       ]
     },
     {
-      "heading": "Loan",
+      "heading": "Service Level Agreements",
       "questions": [
         {
-          "field": "loan_purpose",
-          "question": "Are you lending or borrowing money?"
+          "field": "agreement_date",
+          "question": "What is the date of this SLA? (Format: Day Month Year)"
         },
         {
-          "field": "loan_reason",
-          "question": "What is this loan for? (Business, Debts or Bills, Real Estate, Vehicle, Other)"
+          "field": "provider_name",
+          "question": "What is the name of the Service Provider (company or individual)?"
         },
         {
-          "field": "borrower_location",
-          "question": "In which state or union territory do you live?"
+          "field": "provider_address",
+          "question": "What is the address of the Service Provider?"
         },
         {
-          "field": "loan_amount",
-          "question": "How much are you lending?"
+          "field": "client_name",
+          "question": "What is the name of the Client (company or individual)?"
         },
         {
-          "field": "charge_interest",
-          "question": "Will you charge interest on the loan?"
+          "field": "client_address",
+          "question": "What is the address of the Client?"
         },
         {
-          "field": "loan_date",
-          "question": "When will you lend the money? (Loan date)"
+          "field": "service_description",
+          "question": "Briefly describe the services being provided (e.g., 'IT Support Services', 'Cloud Hosting Services')"
         },
         {
-          "field": "repayment_method",
-          "question": "How will the borrower repay the loan? (Regular Payments, A single payment, Other)"
+          "field": "start_date",
+          "question": "What is the start date of the service? (Format: Day Month Year)"
+        },
+        {
+          "field": "end_date",
+          "question": "What is the end date of the service? (Format: Day Month Year)"
+        },
+        {
+          "field": "service_1",
+          "question": "Describe the first main service to be provided"
+        },
+        {
+          "field": "service_2",
+          "question": "Describe the second main service to be provided"
+        },
+        {
+          "field": "service_3",
+          "question": "Describe the third main service to be provided"
+        },
+        {
+          "field": "uptime_guarantee",
+          "question": "What is the uptime guarantee? (e.g., '99.9% availability per month')"
+        },
+        {
+          "field": "response_time",
+          "question": "What is the response time for critical issues?"
+        },
+        {
+          "field": "resolution_time",
+          "question": "What is the resolution time for critical issues?"
+        },
+        {
+          "field": "service_fee",
+          "question": "What is the service fee amount? (in ₹)"
         },
         {
           "field": "payment_frequency",
-          "question": "How often will the borrower make payments? (Monthly, Weekly, Yearly)"
+          "question": "How often should payments be made? (e.g., 'monthly', 'quarterly')"
         },
         {
-          "field": "first_payment_date",
-          "question": "When will the borrower make the first payment?"
+          "field": "payment_due_date",
+          "question": "On what day of the billing cycle is payment due?"
         },
         {
-          "field": "schedule_determination",
-          "question": "How do you want to determine the payment schedule? (Specify final payment date, By number of payments)"
+          "field": "late_fee",
+          "question": "What is the late payment fee per day? (in ₹)"
         },
         {
-          "field": "early_repayment",
-          "question": "Can the borrower make lump sum payments or repay the loan early?"
+          "field": "support_hours",
+          "question": "What are the support hours? (e.g., '24/7 Support', '9 AM to 6 PM IST, Monday to Friday')"
         },
         {
-          "field": "overdue_penalty",
-          "question": "Will you charge a penalty for overdue payments?"
+          "field": "support_channels",
+          "question": "What support channels are available? (e.g., 'Email, Phone, Chat')"
         },
         {
-          "field": "penalty_type",
-          "question": "What is the penalty? (Late fee, Interest rate increase)"
+          "field": "penalty_rate",
+          "question": "What is the penalty rate for not meeting performance metrics? (e.g., '10% credit of monthly fee per 1% downtime')"
         },
         {
-          "field": "late_fee_amount",
-          "question": "How much is the late fee?"
+          "field": "notice_period",
+          "question": "What is the notice period required for termination? (e.g., '30 days')"
         },
         {
-          "field": "grace_period",
-          "question": "Grace Period before late fee is charged? (Days)"
+          "field": "governing_law",
+          "question": "Which state/country's laws govern this agreement?"
         },
         {
-          "field": "lender_type",
-          "question": "Who is the lender? (Individual, Company/Organization)"
-        },
-        {
-          "field": "lender_details",
-          "question": "Provide the full name or company name and address of the lender."
-        },
-        {
-          "field": "borrower_type",
-          "question": "Who is the borrower? (Individual, Company/Organization)"
-        },
-        {
-          "field": "borrower_details",
-          "question": "Provide the full name or company name and address of the borrower."
-        },
-        {
-          "field": "cosigner",
-          "question": "Is anyone co-signing this loan? (Yes/No)"
-        },
-        {
-          "field": "cosigner_details",
-          "question": "Who is co-signing the loan? (Individual or Company/Organization)"
-        },
-        {
-          "field": "collateral",
-          "question": "Will the borrower back the loan with an asset or personal property?"
-        },
-        {
-          "field": "collateral_details",
-          "question": "What is being used to secure the loan?"
+          "field": "signature_date",
+          "question": "What is the date when this agreement will be signed? (Format: Day Month Year)"
         }
       ]
     }
@@ -302,14 +306,37 @@ export default function CreateAgreement() {
 
         try {
           // Convert answers array to the required format
-          const formattedAnswers = answers.reduce((acc, curr) => {
-            acc[curr.field] = curr.answer;
-            return acc;
-          }, {} as Record<string, string>);
+          const formattedAnswers = {
+            ...answers.reduce((acc, curr) => {
+              acc[curr.field] = curr.answer;
+              return acc;
+            }, {} as Record<string, string>),
+            category: currentCategory
+          };
 
           console.log('Making API call with answers:', formattedAnswers);
 
-          const response = await fetch('/api/generate/house_renting', {
+          const category = currentCategory;
+          console.log('Selected category:', category);
+          
+          let apiRoute = '';
+          switch (category?.toLowerCase()) {
+            case 'house renting':
+              apiRoute = '/api/generate/house_renting';
+              console.log('Using house renting route');
+              break;
+            case 'service level agreements':
+              apiRoute = '/api/generate/sla';
+              console.log('Using SLA route');
+              break;
+            default:
+              console.log('Invalid category:', category);
+              throw new Error('Invalid category selected');
+          }
+
+          console.log('Making API call to:', apiRoute);
+
+          const response = await fetch(apiRoute, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -358,9 +385,16 @@ export default function CreateAgreement() {
     
     setIsSaving(true);
     try {
+      // Create timestamp in format YYYYMMDD_HHMMSS
+      const now = new Date();
+      const timestamp = now.toISOString()
+        .replace(/[-:]/g, '')    // Remove dashes and colons
+        .replace(/\..+/, '')     // Remove milliseconds
+        .replace('T', '_');      // Replace T with underscore
+
       // Create a blob from the agreement text
       const blob = new Blob([generatedAgreement], { type: 'text/plain' });
-      const file = new File([blob], 'agreement.txt', { type: 'text/plain' });
+      const file = new File([blob], `agreement_${timestamp}.txt`, { type: 'text/plain' });
 
       // Create form data
       const formData = new FormData();
@@ -387,7 +421,7 @@ export default function CreateAgreement() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
     handleAnswer(input.trim());
