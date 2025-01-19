@@ -26,7 +26,7 @@ const questions = {
   "categories": [
     {
       "heading": "House Renting",
-      "questions": [
+      "questions":[
         {
           "field": "lease_date",
           "question": "What is the date of this lease agreement? (Format: Day Month Year)"
@@ -218,6 +218,8 @@ export default function CreateAgreement() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAgreement, setGeneratedAgreement] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Start the conversation by asking for category
@@ -265,7 +267,7 @@ export default function CreateAgreement() {
 
     // Handle question answers
     const currentQuestion = getCurrentQuestion();
-    if (currentQuestion) {
+    if (currentQuestion && !isVerifying) {
       setAnswers(prev => [...prev, {
         field: currentQuestion.field,
         question: currentQuestion.question,
@@ -291,6 +293,7 @@ export default function CreateAgreement() {
     } else if (isVerifying) {
       if (answer.toLowerCase() === 'yes') {
         // Generate agreement
+        setIsVerifying(false); // Reset verification state
         setIsGenerating(true);
         setMessages(prev => [...prev, {
           type: 'bot',
@@ -298,26 +301,38 @@ export default function CreateAgreement() {
         }]);
 
         try {
-          const response = await fetch('/api/generate-agreement', {
+          // Convert answers array to the required format
+          const formattedAnswers = answers.reduce((acc, curr) => {
+            acc[curr.field] = curr.answer;
+            return acc;
+          }, {} as Record<string, string>);
+
+          console.log('Making API call with answers:', formattedAnswers);
+
+          const response = await fetch('/api/generate/house_renting', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              category: currentCategory,
-              answers: answers
+              answers: formattedAnswers
             }),
           });
 
-          if (!response.ok) throw new Error('Failed to generate agreement');
+          if (!response.ok) {
+            console.error('API response not ok:', response.status);
+            throw new Error('Failed to generate agreement');
+          }
 
           const data = await response.json();
-          setGeneratedAgreement(data.agreement);
+          console.log('API response:', data);
+          setGeneratedAgreement(data.agreement); 
           setMessages(prev => [...prev, {
             type: 'bot',
             content: 'Your agreement has been generated! You can view it in the preview section.'
           }]);
         } catch (error) {
+          console.error('Error generating agreement:', error);
           setMessages(prev => [...prev, {
             type: 'bot',
             content: 'Sorry, there was an error generating your agreement. Please try again.'
@@ -325,7 +340,7 @@ export default function CreateAgreement() {
         } finally {
           setIsGenerating(false);
         }
-      } else {
+      } else if (answer.toLowerCase() === 'no') {
         // Reset to beginning of questions
         setCurrentQuestionIndex(0);
         setAnswers([]);
@@ -335,6 +350,40 @@ export default function CreateAgreement() {
           content: questions.categories.find(cat => cat.heading === currentCategory)!.questions[0].question
         }]);
       }
+    }
+  };
+
+  const handleSaveAgreement = async () => {
+    if (!generatedAgreement) return;
+    
+    setIsSaving(true);
+    try {
+      // Create a blob from the agreement text
+      const blob = new Blob([generatedAgreement], { type: 'text/plain' });
+      const file = new File([blob], 'agreement.txt', { type: 'text/plain' });
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', 'agreement'); // Specify this is an agreement
+
+      // Upload the file
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save agreement');
+      }
+
+      // Redirect to dashboard
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error saving agreement:', error);
+      alert('Failed to save agreement. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -384,14 +433,32 @@ export default function CreateAgreement() {
       </div>
 
       {/* Preview Section */}
-      <div className="flex-1 p-4 mt-16">
-        <h2 className="text-xl font-bold mb-4">Agreement Preview</h2>
+      <div className="flex-1 p-4 mt-16 flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Agreement Preview</h2>
+          {generatedAgreement && (
+            <button
+              onClick={handleSaveAgreement}
+              disabled={isSaving}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                  Saving...
+                </>
+              ) : (
+                'Save Agreement'
+              )}
+            </button>
+          )}
+        </div>
         {isGenerating ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
           </div>
         ) : generatedAgreement ? (
-          <div className="prose max-w-none">
+          <div className="prose max-w-none flex-1 overflow-auto border rounded-lg p-4 bg-white shadow-inner">
             <pre className="whitespace-pre-wrap font-sans">{generatedAgreement}</pre>
           </div>
         ) : (
