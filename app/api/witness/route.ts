@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     console.log('Calling witness service for file:', fileName);
     
-    const response = await fetch('http://localhost:3001/witness', {
+    const response = await fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/witness`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

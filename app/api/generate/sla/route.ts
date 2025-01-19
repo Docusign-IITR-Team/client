@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     // Call the external generation API
     console.log('Calling external SLA generation service');
-    const response = await fetch('http://localhost:3001/generate/sla', {
+    const response = await fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/generate/sla`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

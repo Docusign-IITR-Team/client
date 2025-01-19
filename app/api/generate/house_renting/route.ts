@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const { answers } = body;
 
     // Call the external generation API
-    const response = await fetch('http://localhost:3001/generate/house_renting', {
+    const response = await fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/generate/house_renting`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

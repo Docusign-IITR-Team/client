@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     }
 
     // Call the external analysis API
-    const response = await fetch('http://localhost:3001/analyze', {
+    const response = await fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/analyze`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

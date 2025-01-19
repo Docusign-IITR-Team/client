@@ -118,7 +118,7 @@ export async function PUT(
         if (allSigned) {
           // Call witness API internally
           try {
-            const witnessResponse = await fetch('http://localhost:3001/witness', {
+            const witnessResponse = await fetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/witness`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

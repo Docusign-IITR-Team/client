@@ -91,7 +91,7 @@ export async function POST(request: Request) {
 
     try {
       // Forward to GROQ API with retry logic
-      const groqResponse = await retryFetch('http://localhost:3001/chat', {
+      const groqResponse = await retryFetch(`http://${process.env.NEXT_PUBLIC_BACKEND_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
