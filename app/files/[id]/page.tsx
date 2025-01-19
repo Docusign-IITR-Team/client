@@ -4,13 +4,20 @@ import { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { editor } from 'monaco-editor';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Navbar from '@/app/components/Navbar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Download, FileText } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
 });
-
 interface FileData {
   _id: string;
   name: string;
@@ -641,6 +648,46 @@ export default function FilePage({ params }: { params: { id: string } }) {
     </div>
   );
 
+  const downloadAsText = () => {
+    const element = document.createElement("a");
+    const file = new Blob([currentContent], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = `${file?.name || 'document'}.txt`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const downloadAsPDF = async () => {
+    try {
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: currentContent,
+          fileName: file?.name || 'document'
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to generate PDF');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const element = document.createElement("a");
+      element.href = url;
+      element.download = `${file?.name || 'document'}.pdf`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // You can add toast notification here for error
+    }
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -651,7 +698,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
             <div className="space-y-4">
               {status === 'unauthenticated' && (
                 <button
-                  onClick={() => signIn()}
+                  onClick={() => signIn('google')}
                   className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
                 >
                   Sign In
@@ -703,6 +750,24 @@ export default function FilePage({ params }: { params: { id: string } }) {
               <p className="text-sm text-gray-500">Created by : {file?.owner}</p>
             </div>
             <div className="flex items-center gap-4">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={downloadAsText} className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Download as Text
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={downloadAsPDF} className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Download as PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <div className="flex-grow relative">
                 <input
                   type="text"
