@@ -476,11 +476,27 @@ export default function FilePage({ params }: { params: { id: string } }) {
       4: 'bg-lime-600/10 text-lime-700 border-lime-500/20 hover:bg-lime-500/20',
       5: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20 hover:bg-emerald-500/20'
     };
-    return colors[invertedIntensity as keyof typeof colors] || colors[3];
+
+    // Add dot colors mapping
+    const dotColors = {
+      1: 'bg-red-500 shadow-red-500/30',
+      2: 'bg-orange-500 shadow-orange-500/30',
+      3: 'bg-yellow-500 shadow-yellow-500/30',
+      4: 'bg-lime-500 shadow-lime-500/30',
+      5: 'bg-emerald-500 shadow-emerald-500/30'
+    };
+
+    return {
+      card: colors[invertedIntensity as keyof typeof colors] || colors[3],
+      dot: dotColors[invertedIntensity as keyof typeof dotColors] || dotColors[3]
+    };
   };
 
   const renderAnalysisResult = (result: any) => {
     if (!result) return null;
+
+    // Filter out deadlines with invalid dates
+  
 
     return (
       <div className="space-y-8">
@@ -558,20 +574,14 @@ export default function FilePage({ params }: { params: { id: string } }) {
             {result.termsAndConditions.map(([term, intensity]: [string, number], index: number) => (
               <div 
                 key={index}
-                className={`p-4 rounded-lg border transition-all duration-200 ${getIntensityColor(intensity)}`}
+                className={`p-4 rounded-lg border transition-all duration-200 ${getIntensityColor(intensity).card}`}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex-1">
                     <p className="text-sm leading-relaxed">{term}</p>
                   </div>
                   <div className="flex-shrink-0">
-                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${
-                      intensity === 1 ? 'bg-red-500 shadow-red-500/30' :
-                      intensity === 2 ? 'bg-orange-500 shadow-orange-500/30' :
-                      intensity === 3 ? 'bg-yellow-500 shadow-yellow-500/30' :
-                      intensity === 4 ? 'bg-lime-500 shadow-lime-500/30' :
-                      'bg-emerald-500 shadow-emerald-500/30'
-                    }`}></div>
+                    <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(intensity).dot}`}></div>
                   </div>
                 </div>
               </div>
@@ -579,15 +589,15 @@ export default function FilePage({ params }: { params: { id: string } }) {
           </div>
           <div className="mt-4 flex items-center gap-6 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/30"></div>
+              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(1).dot}`}></div>
               <span className="text-red-700">{isOwner ? 'Unfavorable' : 'High Risk'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500 shadow-sm shadow-yellow-500/30"></div>
+              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(3).dot}`}></div>
               <span className="text-yellow-700">Neutral</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/30"></div>
+              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(5).dot}`}></div>
               <span className="text-emerald-700">{isOwner ? 'Favorable' : 'Low Risk'}</span>
             </div>
           </div>
