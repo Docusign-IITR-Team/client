@@ -86,9 +86,54 @@ export async function PUT(
     if (body.content !== undefined) {
       updateData.content = body.content;
       updateData.updatedAt = new Date().toISOString();
+      // Reset all signatures when content changes
+      const signatures: { [key: string]: boolean } = {};
+      [file.owner, ...(file.collaborators || [])].forEach(email => {
+        signatures[email] = false;
+      });
+      updateData.signatures = signatures;
     }
     if (body.collaborators !== undefined) {
       updateData.collaborators = body.collaborators;
+      // Add new collaborators to signatures with false value
+      const signatures = { ...(file.signatures || {}) };
+      body.collaborators.forEach((email: string) => {
+        if (signatures[email] === undefined) {
+          signatures[email] = false;
+        }
+      });
+      updateData.signatures = signatures;
+    }
+    if (body.signatures !== undefined) {
+      // Only allow users to update their own signature
+      const signatures = { ...(file.signatures || {}) };
+      if (body.signatures[session.user.email] !== undefined) {
+        signatures[session.user.email] = body.signatures[session.user.email];
+        updateData.signatures = signatures;
+
+        // Check if this was the last signature needed
+        const allSigners = [file.owner, ...(file.collaborators || [])];
+        const allSigned = allSigners.every(email => signatures[email] === true);
+
+        if (allSigned) {
+          // Call witness API internally
+          try {
+            const witnessResponse = await fetch('http://localhost:3001/witness', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ fileName: file.name }),
+            });
+
+            if (!witnessResponse.ok) {
+              console.error('Failed to generate witness:', await witnessResponse.text());
+            }
+          } catch (error) {
+            console.error('Error calling witness service:', error);
+          }
+        }
+      }
     }
 
     const result = await db.collection('files').updateOne(

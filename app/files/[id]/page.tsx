@@ -14,6 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, FileText } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -25,6 +33,7 @@ interface FileData {
   type: string;
   owner: string;
   collaborators: string[];
+  signatures: { [email: string]: boolean };
   updatedAt: string;
 }
 
@@ -55,6 +64,8 @@ export default function FilePage({ params }: { params: { id: string } }) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSignDialog, setShowSignDialog] = useState(false);
+  const [isGeneratingWitness, setIsGeneratingWitness] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<string[]>([]);
   const { data: session, status } = useSession();
@@ -688,6 +699,81 @@ export default function FilePage({ params }: { params: { id: string } }) {
     }
   };
 
+  const handleSignDocument = async () => {
+    try {
+      const response = await fetch(`/api/files/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          signatures: {
+            [session!.user!.email!]: true
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sign document');
+      }
+
+      const data = await response.json();
+      const updatedFile = {
+        ...file!,
+        signatures: {
+          ...file!.signatures,
+          [session!.user!.email!]: true
+        }
+      };
+      setFile(updatedFile);
+
+      // Check if all signatures are collected
+      const allSigners = [updatedFile.owner, ...updatedFile.collaborators];
+      const allSigned = allSigners.every(email => updatedFile.signatures[email] === true);
+
+      console.log('All signed:', allSigned);
+
+      if (allSigned) {
+        console.log('All members have signed, calling witness API');
+        setIsGeneratingWitness(true);
+        try {
+          const witnessResponse = await fetch('/api/witness', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileId: params.id,
+              fileName: updatedFile.name,
+            }),
+          });
+
+          if (!witnessResponse.ok) {
+            console.error('Failed to call witness API:', await witnessResponse.text());
+          } else {
+            const witnessData = await witnessResponse.json();
+            console.log('Witness generated successfully:', witnessData);
+          }
+        } catch (error) {
+          console.error('Error calling witness API:', error);
+        } finally {
+          setIsGeneratingWitness(false);
+        }
+      }
+
+      setShowSignDialog(false);
+    } catch (error) {
+      console.error('Error signing document:', error);
+    }
+  };
+
+  const getSignatureStatus = () => {
+    if (!file?.signatures) return 'Not signed by anyone';
+    const totalSigners = [file.owner, ...file.collaborators].length;
+    const signedCount = Object.values(file.signatures).filter(Boolean).length;
+    return `${signedCount}/${totalSigners} signed`;
+  };
+
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -869,6 +955,15 @@ export default function FilePage({ params }: { params: { id: string } }) {
                   )}
                 </div>
               )}
+              <Button
+                onClick={() => setShowSignDialog(true)}
+                disabled={!session?.user?.email || hasChanges || (file?.signatures?.[session.user.email] ?? false)}
+              >
+                Sign Document
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {getSignatureStatus()}
+              </span>
             </div>
           </div>
         </div>
@@ -1023,6 +1118,50 @@ export default function FilePage({ params }: { params: { id: string } }) {
           </div>
         </div>
       )}
+      <Dialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign Document</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to sign this document? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowSignDialog(false)} disabled={isGeneratingWitness}>
+              Cancel
+            </Button>
+            <Button onClick={handleSignDocument} disabled={isGeneratingWitness}>
+              {isGeneratingWitness ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Generating Witness...
+                </>
+              ) : (
+                'Sign'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );
