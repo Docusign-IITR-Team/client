@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { fileId } = body;
+    const { fileId ,filename} = body;
 
     if (!fileId) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         text: body.content,
+        fileName:filename
       }),
     });
     console.log(response.status,response);

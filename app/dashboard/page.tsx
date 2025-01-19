@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, FileText, Upload } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
+import ClauseAnalyzerBot from '@/app/components/ClauseAnalyzerBot';
 
 interface FileItem {
   _id: string;
@@ -21,7 +22,7 @@ interface FileItem {
   owner: string;
 }
 
-export default function Home() {
+export default function DashboardPage() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -142,112 +143,122 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="container mx-auto p-6 mt-16">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-4xl font-bold">Dashboard</h1>
-          <div className="flex gap-4">
-            <Link href="/dashboard/create">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Agreement
-              </Button>
-            </Link>
+      <div className="container mx-auto p-4 pt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left column - File Upload and List */}
+          <div className="lg:col-span-2">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-4xl font-bold">Dashboard</h1>
+              <div className="flex gap-4">
+                <Link href="/dashboard/create">
+                  <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Agreement
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <Tabs defaultValue="files" className="w-full">
+              <TabsList>
+                <TabsTrigger value="files">Your Files</TabsTrigger>
+                <TabsTrigger value="shared">Shared Files</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="files">
+                <Card className="p-6">
+                  <FileUpload onChange={(files) => files[0] && handleFileUpload(files[0])} />
+                  {isLoading ? (
+                    <div className="space-y-4 mt-6">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-6">
+                      {ownedFiles.length === 0 ? (
+                        <div className="text-center py-8">
+                          <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                          <p className="text-muted-foreground">No files uploaded yet</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {ownedFiles.map((file) => (
+                            <Link
+                              key={file._id}
+                              href={`/files/${file._id}`}
+                              className="block p-4 bg-card hover:bg-accent transition-colors rounded-lg"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="font-medium">{file.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {(file.size / 1024).toFixed(2)} KB
+                                  </p>
+                                </div>
+                                <span className="text-sm text-muted-foreground">
+                                  {new Date(file.updatedAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="shared">
+                <Card className="p-6">
+                  {isLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-20 w-full" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div>
+                      {sharedFiles.length === 0 ? (
+                        <div className="text-center py-8">
+                          <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                          <p className="text-muted-foreground">No shared files</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {sharedFiles.map((file) => (
+                            <Link
+                              key={file._id}
+                              href={`/files/${file._id}`}
+                              className="block p-4 bg-card hover:bg-accent transition-colors rounded-lg"
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="font-medium">{file.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Shared by: {file.owner}
+                                  </p>
+                                </div>
+                                <span className="text-sm text-muted-foreground">
+                                  {new Date(file.updatedAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+          
+          {/* Right column - Clause Analyzer Bot */}
+          <div className="lg:col-span-1">
+            <ClauseAnalyzerBot />
           </div>
         </div>
-
-        <Tabs defaultValue="files" className="w-full">
-          <TabsList>
-            <TabsTrigger value="files">Your Files</TabsTrigger>
-            <TabsTrigger value="shared">Shared Files</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="files">
-            <Card className="p-6">
-              <FileUpload onChange={(files) => files[0] && handleFileUpload(files[0])} />
-              {isLoading ? (
-                <div className="space-y-4 mt-6">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-6">
-                  {ownedFiles.length === 0 ? (
-                    <div className="text-center py-8">
-                      <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-muted-foreground">No files uploaded yet</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {ownedFiles.map((file) => (
-                        <Link
-                          key={file._id}
-                          href={`/files/${file._id}`}
-                          className="block p-4 bg-card hover:bg-accent transition-colors rounded-lg"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h3 className="font-medium">{file.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {(file.size / 1024).toFixed(2)} KB
-                              </p>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(file.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="shared">
-            <Card className="p-6">
-              {isLoading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-20 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <div>
-                  {sharedFiles.length === 0 ? (
-                    <div className="text-center py-8">
-                      <IconFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-muted-foreground">No shared files</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {sharedFiles.map((file) => (
-                        <Link
-                          key={file._id}
-                          href={`/files/${file._id}`}
-                          className="block p-4 bg-card hover:bg-accent transition-colors rounded-lg"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h3 className="font-medium">{file.name}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Shared by: {file.owner}
-                              </p>
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(file.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

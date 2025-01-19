@@ -435,6 +435,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
         body: JSON.stringify({
           fileId: params.id,
           content: file?.content,
+          filename: file?.name
         }),
       });
 
