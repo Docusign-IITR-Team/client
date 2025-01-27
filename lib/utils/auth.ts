@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import clientPromise from "./db";
 
@@ -19,6 +20,26 @@ export const authOptions: NextAuthOptions = {
   debug: true,
   adapter: MongoDBAdapter(clientPromise),
   providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+        
+        // Here you would typically verify against your database
+        // For now, we'll just return a mock user
+        return {
+          id: "1",
+          email: credentials.email,
+          name: "User"
+        };
+      }
+    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -41,7 +62,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
+      if (account?.provider === "google" || account?.provider === "credentials") {
         return true;
       }
       return false;
@@ -49,15 +70,16 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token, user }) {
       if (session?.user) {
         session.user.id = token.sub ?? undefined;
+        session.user.email = token.email ?? undefined;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
+        token.email = user.email;
       }
       return token;
     },
   },
 };
-

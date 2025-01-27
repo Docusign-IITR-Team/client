@@ -38,7 +38,7 @@ export default function Navbar() {
   const handleDocusignLogin= () => {
    console.log("docusign login")
    router.push(
-    "http://localhost:3000/ds/login?auth=jwt-auth&redirect_uri=http://localhost:3001"
+    "/login"
   )
    }
   useEffect(() => {
