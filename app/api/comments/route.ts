@@ -106,3 +106,40 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to add comment' }, { status: 500 });
     }
 }
+
+export async function DELETE(request: Request) {
+    try {
+        const session = await getServerSession();
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const commentId = searchParams.get('commentId');
+
+        if (!commentId) {
+            return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
+        }
+
+        const client = await clientPromise;
+        const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
+        const collection = db.collection('comments');
+
+        const comment = await collection.findOne({ _id: new ObjectId(commentId) });
+
+        if (!comment) {
+            return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+        }
+
+        if (comment.email !== session.user.email) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        await collection.deleteOne({ _id: new ObjectId(commentId) });
+
+        return NextResponse.json({ message: 'Comment deleted successfully' });
+    } catch (e) {
+        console.error(e);
+        return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
+    }
+}

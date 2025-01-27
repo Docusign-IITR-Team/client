@@ -98,3 +98,48 @@ export async function POST(request: Request) {
     });
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.email) {
+      return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+      });
+    }
+
+    const { fileId, signature } = await request.json();
+
+    if (!fileId || typeof signature !== 'boolean') {
+      return new NextResponse(JSON.stringify({ error: 'Invalid request' }), {
+        status: 400,
+      });
+    }
+
+    const client = await clientPromise;
+    const db = client.db(process.env.NEXT_PUBLIC_MONGODB_DB);
+
+    console.log('Updating signature for file:', fileId);
+    console.log('User email:', session.user.email);
+
+    const result = await db.collection('files').updateOne(
+      { _id: new ObjectId(fileId), [`signatures.${session.user.email}`]: { $exists: true } },
+      { $set: { [`signatures.${session.user.email}`]: signature, updatedAt: new Date() } }
+    );
+
+    if (result.matchedCount === 0) {
+      return new NextResponse(JSON.stringify({ error: 'File not found or user not authorized' }), {
+        status: 404,
+      });
+    }
+
+    console.log('Signature updated for file:', fileId);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error:', error);
+    return new NextResponse(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+    });
+  }
+}
