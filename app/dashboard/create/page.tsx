@@ -472,7 +472,7 @@ export default function CreateAgreement() {
       {/* Preview Section */}
       <div className="flex-1 p-4 mt-16 flex flex-col">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Agreement Preview</h2>
+          <h2 className="text-xl font-bold text-white">Agreement Preview</h2>
           {generatedAgreement && (
             <button
               onClick={handleSaveAgreement}

@@ -17,8 +17,11 @@ import { ModeToggle } from "./DarkCodeToggle"
 import { Bell } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Settings, LogOut, User, FileText } from "lucide-react"
+import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"; 
 
 export default function Navbar() {
+  const router = useRouter()
   const { data: session } = useSession()
   const [notificationCount, setNotificationCount] = useState(0)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -32,6 +35,12 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  const handleDocusignLogin= () => {
+   console.log("docusign login")
+   router.push(
+    "http://localhost:3000/ds/login?auth=jwt-auth&redirect_uri=http://localhost:3001"
+  )
+   }
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
@@ -43,6 +52,7 @@ export default function Navbar() {
       }
     }
 
+    
     if (session) {
       fetchNotificationCount()
       const interval = setInterval(fetchNotificationCount, 60000)
@@ -132,12 +142,21 @@ export default function Navbar() {
               </Popover>
             </>
           ) : (
+            <>
             <Button
               onClick={() => signIn("google")}
               className="bg-white text-[#1e40af] hover:bg-blue-50 transition-colors"
             >
-              Sign in
+              Sign in with Google
             </Button>
+             <Button
+             onClick={() => handleDocusignLogin()}
+             className="bg-white text-[#1e40af] hover:bg-blue-50 transition-colors"
+           >
+             Sign in with Docusign
+           </Button>
+           </>
+
           )}
         </div>
       </nav>

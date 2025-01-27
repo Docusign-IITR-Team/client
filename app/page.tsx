@@ -176,7 +176,7 @@ export default function Home() {
                   variants={itemVariants}
                   className='text-center space-y-8'
                 >
-                  <div className='h-[8rem] flex items-center justify-center'>
+                  <div className='h-[8rem] flex items-center justify-center text-white'>
                     <TypewriterEffectSmooth
                       words={[
                         { text: 'Create' },

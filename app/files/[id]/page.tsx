@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { DarkBlueBackground } from '@/app/components/dark-blue-background';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -873,14 +874,15 @@ export default function FilePage({ params }: { params: { id: string } }) {
           border-radius: 2px;
         }
       `}</style>
+      <DarkBlueBackground>
       <Navbar />
     <div className="min-h-screen flex p-4 gap-4 mt-16">
       <div className="flex-grow flex flex-col">
         <div className="mb-4">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">{file?.name}</h1>
-              <p className="text-sm text-gray-500">Created by : {file?.owner}</p>
+              <h1 className="text-2xl font-bold text-white">{file?.name}</h1>
+              <p className="text-sm text-white">Created by : {file?.owner}</p>
             </div>
             <div className="flex items-center gap-4">
               <DropdownMenu>
@@ -1210,6 +1212,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
         </DialogContent>
       </Dialog>
     </div>
+    </DarkBlueBackground>
     </>
   );
 }
