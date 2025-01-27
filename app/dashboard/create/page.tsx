@@ -506,3 +506,20 @@ export default function CreateAgreement() {
 
   );
 }
+
+const sendEnvelope = async ({ basePath, accessToken, accountId, envelopeArgs }) => {
+  const dsApiClient = new docusign.ApiClient();
+  dsApiClient.setBasePath(basePath);
+  dsApiClient.addDefaultHeader('Authorization', `Bearer ${accessToken}`);
+  const envelopesApi = new docusign.EnvelopesApi(dsApiClient);
+
+  const envelope = makeEnvelope(envelopeArgs);
+
+  const results = await envelopesApi.createEnvelope(accountId, {
+    envelopeDefinition: envelope,
+  });
+
+  const envelopeId = results.envelopeId;
+  console.log(`Envelope was created. EnvelopeId ${envelopeId}`);
+  return { envelopeId };
+};
