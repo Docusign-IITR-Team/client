@@ -25,6 +25,16 @@ import { Settings, LogOut, User, FileText } from 'lucide-react';
 export default function Navbar() {
   const { data: session } = useSession();
   const [notificationCount, setNotificationCount] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchNotificationCount = async () => {
@@ -39,23 +49,26 @@ export default function Navbar() {
 
     if (session) {
       fetchNotificationCount();
-      // Refresh count every minute
       const interval = setInterval(fetchNotificationCount, 60000);
       return () => clearInterval(interval);
     }
   }, [session]);
 
   return (
-    <header className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-sm">
+    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+      isScrolled ? 'bg-background/80 backdrop-blur-sm border-b border-blue-500/10' : 'bg-transparent'
+    }`}>
       <nav className="container mx-auto flex justify-between items-center p-4">
-        <Link href="/" className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-blue-600">
-          Agright
+        <Link href="/" className="text-2xl font-bold">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-blue-600">
+            Agright
+          </span>
         </Link>
 
         <div className="flex items-center gap-4">
           {session?.user ? (
             <>
-              <Link href="/notifications" className="relative">
+              <Link href="/notifications" className="relative hover:text-blue-500 transition-colors">
                 <Bell className="h-5 w-5" />
                 {notificationCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
@@ -66,19 +79,21 @@ export default function Navbar() {
               <ModeToggle />
               <Popover>
                 <PopoverTrigger>
-                  {session.user.image ? (
-                    <img
-                      src={session.user.image}
-                      alt="Profile"
-                      width={32}
-                      height={32}
-                      className="rounded-full cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
-                      {session.user.name?.[0] || 'U'}
-                    </div>
-                  )}
+                  <div className="ring-2 ring-transparent hover:ring-blue-500 rounded-full transition-all duration-300">
+                    {session.user.image ? (
+                      <img
+                        src={session.user.image}
+                        alt="Profile"
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                        {session.user.name?.[0] || 'U'}
+                      </div>
+                    )}
+                  </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-56" align="end">
                   <div className="space-y-3">
@@ -87,21 +102,21 @@ export default function Navbar() {
                       <p className="text-xs text-muted-foreground">{session.user.email}</p>
                     </div>
                     <div className="space-y-1">
-                      <Link href="/dashboard" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-accent rounded-md transition-colors">
+                      <Link href="/dashboard" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-blue-500/10 rounded-md transition-colors">
                         <FileText className="h-4 w-4" />
                         Dashboard
                       </Link>
-                      <Link href="/profile" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-accent rounded-md transition-colors">
+                      <Link href="/profile" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-blue-500/10 rounded-md transition-colors">
                         <User className="h-4 w-4" />
                         Profile
                       </Link>
-                      <Link href="/settings" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-accent rounded-md transition-colors">
+                      <Link href="/settings" className="flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-blue-500/10 rounded-md transition-colors">
                         <Settings className="h-4 w-4" />
                         Settings
                       </Link>
                       <button
                         onClick={() => signOut()}
-                        className="w-full flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-accent rounded-md transition-colors text-red-500 hover:text-red-600"
+                        className="w-full flex items-center gap-2 text-sm py-1.5 px-2 hover:bg-red-500/10 text-red-500 rounded-md transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
                         Sign out
@@ -112,12 +127,12 @@ export default function Navbar() {
               </Popover>
             </>
           ) : (
-            <button
+            <Button
               onClick={() => signIn('google')}
-              className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
             >
-              Sign In
-            </button>
+              Sign in
+            </Button>
           )}
         </div>
       </nav>

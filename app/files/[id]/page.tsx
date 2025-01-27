@@ -587,20 +587,6 @@ export default function FilePage({ params }: { params: { id: string } }) {
               </div>
             ))}
           </div>
-          <div className="mt-4 flex items-center gap-6 text-xs">
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(1).dot}`}></div>
-              <span className="text-red-700">{isOwner ? 'Unfavorable' : 'High Risk'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(3).dot}`}></div>
-              <span className="text-yellow-700">Neutral</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full shadow-sm ${getIntensityColor(5).dot}`}></div>
-              <span className="text-emerald-700">{isOwner ? 'Favorable' : 'Low Risk'}</span>
-            </div>
-          </div>
         </div>
       </div>
     );

@@ -23,7 +23,7 @@ const sidebarLinks = [
   },
   {
     label: 'Notifications',
-    href: '/notifs',
+    href: '/notifcations',
     icon: <IconBell className="h-4 w-4" />,
   },
 ];
