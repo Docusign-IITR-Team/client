@@ -1,18 +1,19 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import Navbar from "../components/Navbar";
 import { FileUpload } from "@/components/ui/file-upload";
-import { IconFileText, IconPlus } from '@tabler/icons-react';
+import { IconFileText } from "@tabler/icons-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, FileText, Upload } from 'lucide-react';
+import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ClauseAnalyzerBot from '@/app/components/ClauseAnalyzerBot';
+import ClauseAnalyzerBot from "@/app/components/ClauseAnalyzerBot";
+import { DarkBlueBackground } from "../components/dark-blue-background";
 
 interface FileItem {
   _id: string;
@@ -31,29 +32,27 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
 
-  // Fetch files on component mount
   useEffect(() => {
-    if (status === 'authenticated') {
+    if (status === "authenticated") {
       fetchFiles();
     }
   }, [status]);
+
   const fetchFiles = async () => {
     try {
-      const response = await fetch('/api/files');
-      
+      const response = await fetch("/api/files");
       if (!response.ok) {
         if (response.status === 401) {
-          setError('Please sign in to view your files');
+          setError("Please sign in to view your files");
           return;
         }
-        throw new Error('Failed to fetch files');
+        throw new Error("Failed to fetch files");
       }
-      
       const data = await response.json();
       setFiles(data.files);
     } catch (error) {
-      console.error('Error fetching files:', error);
-      setError('Failed to fetch files. Please try again later.');
+      console.error("Error fetching files:", error);
+      setError("Failed to fetch files. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -63,11 +62,11 @@ export default function DashboardPage() {
     setUploading(true);
     setError(null);
 
-    if (!file.name.endsWith('.txt')) {
+    if (!file.name.endsWith(".txt")) {
       toast({
         variant: "destructive",
         title: "Error",
-        children: "Only .txt files are allowed"
+        children: "Only .txt files are allowed",
       });
       return;
     }
@@ -75,35 +74,37 @@ export default function DashboardPage() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', 'document');
+      formData.append("file", file);
+      formData.append("type", "document");
 
-      const response = await fetch('/api/files', {
-        method: 'POST',
+      const response = await fetch("/api/files", {
+        method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
         if (response.status === 401) {
-          setError('Please sign in to upload files');
+          setError("Please sign in to upload files");
           return;
         }
         const data = await response.json();
-        setError(data.error || 'Failed to upload file');
+        setError(data.error || "Failed to upload file");
         return;
       }
 
       await fetchFiles();
     } catch (err) {
-      setError('Failed to upload file. Please try again later.');
+      setError("Failed to upload file. Please try again later.");
     } finally {
       setUploading(false);
       setIsUploading(false);
     }
   };
-  const ownedFiles = files.filter(file => file.owner === session?.user?.email);
-  const sharedFiles = files.filter(file => file.owner !== session?.user?.email);
-  if (status === 'loading') {
+
+  const ownedFiles = files.filter((file) => file.owner === session?.user?.email);
+  const sharedFiles = files.filter((file) => file.owner !== session?.user?.email);
+
+  if (status === "loading") {
     return (
       <div className="min-h-screen">
         <Navbar />
@@ -124,7 +125,8 @@ export default function DashboardPage() {
       </div>
     );
   }
-  if (status === 'unauthenticated') {
+
+  if (status === "unauthenticated") {
     return (
       <>
         <Navbar />
@@ -141,14 +143,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DarkBlueBackground className="min-h-screen">
       <Navbar />
       <div className="container mx-auto p-4 pt-24">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - File Upload and List */}
           <div className="lg:col-span-2">
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-4xl font-bold">Dashboard</h1>
+              <h1 className="text-4xl font-bold text-white">Dashboard</h1>
               <div className="flex gap-4">
                 <Link href="/dashboard/create">
                   <Button className="bg-blue-600 hover:bg-blue-700">
@@ -253,13 +254,11 @@ export default function DashboardPage() {
               </TabsContent>
             </Tabs>
           </div>
-          
-          {/* Right column - Clause Analyzer Bot */}
           <div className="lg:col-span-1">
             <ClauseAnalyzerBot />
           </div>
         </div>
       </div>
-    </div>
+    </DarkBlueBackground>
   );
 }

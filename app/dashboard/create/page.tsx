@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import Navbar from '@/app/components/Navbar';
+import { DarkBlueBackground } from '@/app/components/dark-blue-background';
 
 interface Message {
   type: 'bot' | 'user';
@@ -429,6 +430,8 @@ export default function CreateAgreement() {
 
   return (
     <>
+    <DarkBlueBackground className="min-h-screen">
+
     <div className="flex h-screen">
     <Navbar/>
       {/* Chat Section */}
@@ -502,6 +505,7 @@ export default function CreateAgreement() {
         )}
       </div>
     </div>
+    </DarkBlueBackground>
     </>
 
   );
