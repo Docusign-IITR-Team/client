@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DarkBlueBackground } from '@/app/components/dark-blue-background';
+import Image from "next/image";
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false
@@ -814,6 +815,34 @@ export default function FilePage({ params }: { params: { id: string } }) {
       console.error('Error signing document:', error);
     }
   };
+  const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const publicKey = "0x1234...ABCD" // Replace with your actual public key
+
+  const handleSign = async () => {
+    setShowSignatureModal(true)
+  }
+
+  const handleConfirmSign = async () => {
+    setShowSignatureModal(false)
+    // Call your existing sign API here
+    try {
+      const response = await fetch("/api/sign", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ /* your existing payload */ }),
+      })
+      
+      if (!response.ok) {
+        throw new Error("Failed to sign")
+      }
+      
+      // Handle successful signing
+    } catch (error) {
+      console.error("Error signing:", error)
+    }
+  }
 
   const getSignatureStatus = () => {
     if (!file?.signatures) return 'Not signed by anyone';
@@ -1005,7 +1034,7 @@ export default function FilePage({ params }: { params: { id: string } }) {
                 </div>
               )}
               <Button
-                onClick={() => setShowSignDialog(true)}
+                onClick={() => handleSign()}
                 disabled={!session?.user?.email || hasChanges || (file?.signatures?.[session.user.email] ?? false)}
               >
                 Sign Document
@@ -1104,6 +1133,41 @@ export default function FilePage({ params }: { params: { id: string } }) {
               onMount={handleEditorDidMount}
             />
           )}
+          {file?.signatures && Object.keys(file.signatures).length > 0 && (
+            <div className="mt-8 border-t border-gray-200 pt-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold">Document Signatures</h3>
+                <p className="text-sm text-gray-500">
+                  {Object.keys(file.signatures).length} {Object.keys(file.signatures).length === 1 ? 'Signature' : 'Signatures'}
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Object.entries(file.signatures).map(([email, signature]) => (
+                  <div key={email} className="p-6 bg-gray-900/20 rounded-lg border border-gray-800">
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-gray-200">{email}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Signed on {new Date(signature.timestamp).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative w-full h-[100px] bg-black/20 rounded-lg overflow-hidden">
+                        <Image
+                          src="/signature.png"
+                          alt={`Signature of ${email}`}
+                          fill
+                          style={{ objectFit: 'contain' }}
+                          className="p-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1176,10 +1240,22 @@ export default function FilePage({ params }: { params: { id: string } }) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowSignDialog(false)} disabled={isGeneratingWitness}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSignDialog(false)}
+              disabled={isGeneratingWitness}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSignDocument} disabled={isGeneratingWitness}>
+            <Button
+              type="button"
+              onClick={() => {
+                handleConfirmSign();
+                handleSignDocument();
+              }}
+              disabled={isGeneratingWitness}
+            >
               {isGeneratingWitness ? (
                 <>
                   <svg
@@ -1207,6 +1283,42 @@ export default function FilePage({ params }: { params: { id: string } }) {
               ) : (
                 'Sign'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showSignatureModal} onOpenChange={setShowSignatureModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Your Signature</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="relative w-[300px] h-[100px]">
+              <Image
+                src="/signature.png"
+                alt="Your signature"
+                fill
+                style={{ objectFit: 'contain' }}
+                className="border rounded-lg"
+              />
+            </div>
+            <p className="text-sm text-gray-500">
+              Public Key: {publicKey}
+            </p>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowSignatureModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSignDocument}
+            >
+              Confirm & Sign
             </Button>
           </DialogFooter>
         </DialogContent>
